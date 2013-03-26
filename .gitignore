@@ -1,3 +1,5 @@
+/onet_db_import/data/*
+*/build/*
 *.py[cod]
 
 # C extensions
