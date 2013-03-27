@@ -17,6 +17,8 @@ version = '17.0'
 jobdrop_url = 'http://127.0.0.1:5984/jobdrop/'
 content_model_reference = {}
 scales_reference = {}
+task_statements = {}
+job_zone_reference = {}
 
 def get_document_id(onet_code):
   return 'od:%s' % onet_code
@@ -66,9 +68,21 @@ def import_green_occupations():
       document['green_occupational_category'] = line[1]
       document['last_update'] = str(datetime.datetime.now())
       update_document(line[0], document)
-    # else:
-    #       print 'missing soc code: %s' % line
   print 'completed: import_green_occupations()'  
+
+def import_job_zones():
+  lines = [line.strip() for line in open('data/job zones.txt')]
+  lines.pop(0)
+  for line in lines:
+    line = line.rstrip().split('\t')   
+    # O*NET-SOC Code  Job Zone  Date  Domain Source
+    document = get_document(line[0])
+    job_zone = job_zone_reference[line[1]]
+    if document and (not document.has_key('job_zone') or (document.has_key('job_zone') and document['job_zone'] != job_zone)):
+      document['job_zone'] = job_zone
+      document['last_update'] = str(datetime.datetime.now())
+      update_document(line[0], document)
+  print 'completed: import_job_zones()'  
 
 def import_line(create, items_name, file_name):
   lines = [line.strip() for line in open(file_name)]
@@ -137,16 +151,51 @@ def load_scales_reference():
     scales_reference[line[0]] = {'scale_id': line[0], 'scale_name': line[1], 'scale_minimum': line[2], 'scale_maximum': line[3]}
   print 'completed: load_scales_reference()'
 
+def load_task_statements():
+  lines = [line.strip() for line in open('data/Task statements.txt')]
+  lines.pop(0)
+  # O*NET-SOC Code  Task ID Task  Task Type Incumbents Responding Date  Domain Source
+  for line in lines:
+    line = line.rstrip().split('\t')
+    task = {'task_id': line[1], 'task_name': line[2], 'task_type': line[3], 'domain_source': line[6]}
+    if line[4] != 'n/a':
+      task.update({'incumbents': line[4]})
+    task_statements[line[1]] = task
+    
+  print 'completed: load_task_statements()'
+def load_green_task_statements():
+  lines = [line.strip() for line in open('data/Green Task statements.txt')]
+  lines.pop(0)
+  # O*NET-SOC Code	Task ID	Task	Green Task Type	Date	Domain Source
+  for line in lines:
+    line = line.rstrip().split('\t')
+    task = {'task_id': line[1], 'task_name': line[2], 'task_type': line[3], 'domain_source': line[5]}
+    task_statements[line[1]] = task
+  print 'completed: load_green_task_statements()'
+
+def load_job_zones():
+  lines = [line.strip() for line in open('data/job zone reference.txt')]
+  lines.pop(0)
+  # Job Zone	Name	Experience	Education	Job Training	Examples	SVP Range
+  for line in lines:
+    line = line.rstrip().split('\t')
+    job_zone_reference[line[0]] = {'job_zone': line[0], 'zone_name': line[1], 'experience': line[2], 'education': line[3], 'job_training': line[4], 'examples': line[5]}
+  print 'completed: load_job_zones()'
+
 def main():
   load_scales_reference()
   load_content_model_reference()
-  import_occupation_data()
-  import_green_occupations()
+  load_task_statements()
+  load_green_task_statements()
+  load_job_zones()
+  # import_occupation_data()
+  #   import_green_occupations() 
+  import_job_zones() 
   # import_line(create_skill, 'skill', 'data/skills.txt') 
   # import_line(create_interest, 'interest', 'data/interests.txt')
   # import_line(create_knowledge, 'knowledge', 'data/knowledge.txt')             
-  import_line(create_work_value, 'work_value', 'data/work values.txt')             
-  import_line(create_work_style, 'work_style', 'data/work styles.txt')             
+  # import_line(create_work_value, 'work_value', 'data/work values.txt')             
+  # import_line(create_work_style, 'work_style', 'data/work styles.txt')             
   
 
 if __name__ == '__main__':
